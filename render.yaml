@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: fastapi-flashcards
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
