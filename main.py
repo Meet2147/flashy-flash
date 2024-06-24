@@ -4,10 +4,11 @@ from scipy.io.wavfile import write
 import numpy as np
 import json
 import re
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, File, UploadFile
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import os
+import shutil
 
 # Load environment variables from .env file
 load_dotenv()
@@ -18,23 +19,12 @@ openai.api_key = os.getenv('OPENAI_API_KEY')
 app = FastAPI()
 
 # Audio recording parameters
-AUDIO_FILE_PATH = 'recorded_audio.wav'
+AUDIO_FILE_PATH = 'uploaded_audio.wav'
 SAMPLE_RATE = 16000
-
-class RecordRequest(BaseModel):
-    duration: int
 
 class FlashcardsResponse(BaseModel):
     question: str
     answer: str
-
-# Function to record audio
-def record_audio(duration, sample_rate, filename):
-    print("Recording...")
-    audio_data = sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=1, dtype=np.int16)
-    sd.wait()  # Wait until recording is finished
-    write(filename, sample_rate, audio_data)  # Save as WAV file
-    print("Recording finished")
 
 # Function to transcribe audio using OpenAI Whisper API
 def transcribe_audio(audio_file_path):
@@ -81,19 +71,19 @@ def format_flashcards(qa_pairs):
     return flashcards
 
 @app.post("/generate_flashcards", response_model=list[FlashcardsResponse])
-async def generate_flashcards_endpoint(record_request: RecordRequest):
-    duration = record_request.duration
+async def generate_flashcards_endpoint(file: UploadFile = File(...)):
     try:
-        # Step 1: Record the audio
-        record_audio(duration, SAMPLE_RATE, AUDIO_FILE_PATH)
+        # Save the uploaded file
+        with open(AUDIO_FILE_PATH, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
         
-        # Step 2: Transcribe the audio using Whisper API
+        # Step 1: Transcribe the audio using Whisper API
         transcribed_text = transcribe_audio(AUDIO_FILE_PATH)
         
-        # Step 3: Extract key concepts and generate Q&A pairs
+        # Step 2: Extract key concepts and generate Q&A pairs
         qa_pairs = generate_flashcards(transcribed_text)
         
-        # Step 4: Format Q&A pairs into flashcards
+        # Step 3: Format Q&A pairs into flashcards
         flashcards = format_flashcards(qa_pairs)
         
         return flashcards
