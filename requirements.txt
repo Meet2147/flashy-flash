@@ -4,3 +4,4 @@ openai
 numpy
 scipy
 sounddevice
+python-dotenv
