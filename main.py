@@ -49,7 +49,7 @@ def generate_flashcards(transcribed_text):
         }
     ]
     response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o",
         messages=messages,
         max_tokens=500  # Increase max tokens for better results
     )
